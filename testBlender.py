@@ -1,6 +1,21 @@
-import cv2
+import subprocess
+import sys
+import os
+
+# path to python.exe
+python_exe = os.path.join(sys.prefix, 'bin', 'python.exe')
+py_lib = os.path.join(sys.prefix, 'lib', 'site-packages','pip')
+
+# install opencv
+subprocess.call([python_exe, py_lib, "install", "opencv_python"])
+# install mediapipe
+subprocess.call([python_exe, py_lib, "install", "mediapipe"])
+
+
 import mediapipe as mp
+import cv2
 import numpy as np
+import bpy
 
 
 # PREPARING DATA FOR DETECTING A POSE IN IMAGE
@@ -14,19 +29,16 @@ mp_drawing = mp.solutions.drawing_utils
 pose = mp_pose.Pose()
 
 def detectPose(image_pose, pose, draw=False):
-    original_image = image_pose.copy()
     image_in_RGB = cv2.cvtColor(image_pose, cv2.COLOR_BGR2RGB)
     resultant = pose.process(image_in_RGB)
-    if resultant.pose_landmarks and draw:    
-        mp_drawing.draw_landmarks(image=original_image, 
-                                  landmark_list=resultant.pose_landmarks,
-                                  connections=mp_pose.POSE_CONNECTIONS,
-                                  landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255,255,255),
-                                                                               thickness=2, circle_radius=2),
-                                  connection_drawing_spec=mp_drawing.DrawingSpec(color=(49,125,237),
-                                                                               thickness=2, circle_radius=2))
             
-    return original_image, resultant
+    return resultant
+
+
+# PREPARING IMAGE
+D = bpy.data
+image = cv2.imread("/Faks/Diploma/test_slika.jpg")
+res = detectPose(image, pose, True)
 
 
 def createSpinePoints(res):
@@ -66,3 +78,6 @@ def createSpinePoints(res):
 
     return spineTop, spineBot
 
+topS, botS = createSpinePoints(res)
+
+print(topS)
