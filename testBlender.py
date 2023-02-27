@@ -42,6 +42,7 @@ image = cv2.imread("/Faks/Diploma/test_slika.jpg")
 res = detectPose(image, pose, True)
 
 points = []
-for point in res.pose_landmarks.landmark:
+for point in res.pose_world_landmarks.landmark:
     points.append((point.x, point.y))
 
+print(points)

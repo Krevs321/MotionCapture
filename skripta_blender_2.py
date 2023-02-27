@@ -1,15 +1,3 @@
-import subprocess
-import sys
-import os
-
-# path to python.exe
-python_exe = os.path.join(sys.prefix, 'bin', 'python.exe')
-py_lib = os.path.join(sys.prefix, 'lib', 'site-packages','pip')
-
-# install opencv
-subprocess.call([python_exe, py_lib, "install", "opencv_python"])
-# install mediapipe
-subprocess.call([python_exe, py_lib, "install", "mediapipe"])
 
 
 import mediapipe as mp
@@ -19,91 +7,90 @@ import bpy
 import mathutils
 
 
-# PREPARING DATA FOR DETECTING A POSE IN IMAGE
-mp_pose = mp.solutions.pose
-pose_image = mp_pose.Pose(static_image_mode=True, 
-                          min_detection_confidence=0.5)
-pose_video = mp_pose.Pose(static_image_mode=False, 
-                          min_detection_confidence=0.7,
-                          min_tracking_confidence=0.7)
-mp_drawing = mp.solutions.drawing_utils
-pose = mp_pose.Pose()
-
-def detectPose(image_pose, pose, draw=False):
-    image_in_RGB = cv2.cvtColor(image_pose, cv2.COLOR_BGR2RGB)
+def detectPose():
+    mp_pose = mp.solutions.pose
+    image = cv2.imread("/Faks/Diploma/test_slika.jpg")
+    # pose_image = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
+    pose = mp_pose.Pose()
+    image_in_RGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     resultant = pose.process(image_in_RGB)
             
     return resultant
 
 
-# PREPARING IMAGE
-image = cv2.imread("/Faks/Diploma/test_slika.jpg")
-res = detectPose(image, pose, True)
+# Results from mediapipe
+results = detectPose()
+
+# Metoda ki izračuna sredinsko točko med medenico in ključnico (zgornji del hrbtenice in spodnji del hrbtenice). 
+# Args: x,y,z trenutne točke
+# Return: sredinska točka na podlagi trenutne in naslednje točke
+def middle_point(x_c, y_c, z_c, p_next):
+    scale = 2
+    z_depth = 0
+
+    x_next = (0.5-p_next.x)*scale
+    y_next = (0.5-p_next.y)*scale
+    z_next = p_next.z*z_depth
+
+    vec1 = np.array([x_c, y_c, z_c])
+    vec2 = np.array([x_next, y_next, z_next])
+    
+    mid_point = (vec1 + vec2) / 2
+
+    return mid_point
 
 # CONVERTING MEDIAPIPE LANDMARKS TO 3D POINTS 
-# Function returns: list of transformed points
+def mediapipePoints_3DPoints():
+    scale = 2
+    z_depth = 0
 
-def mediapipe_to_points(landmarks):
-    # Define the conversion matrix to convert Mediapipe coordinates to Blender coordinates
-    # The matrix flips the x and y axes and scales the coordinates to match Blender's scale
-    conversion_matrix = mathutils.Matrix.Scale(-1, 4, (1, 0, 0)) @ mathutils.Matrix.Scale(-1, 4, (0, 1, 0)) @ mathutils.Matrix.Scale(1, 4, (0, 0, 1)) @ mathutils.Matrix.Scale(0.1, 4)
+    converted_points = []
+    needed_points = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 31, 32, 0]
 
-    # Create a list to store the 3D points
-    points = []
+    for i in range(len(results.pose_landmarks.landmark)):
+        if i in needed_points:
+            x_pose = (0.5-results.pose_landmarks.landmark[i].x)*scale
+            y_pose = (0.5-results.pose_landmarks.landmark[i].y)*scale
+            z_pose = results.pose_landmarks.landmark[i].z*z_depth
+            
+            if (i == 11 and i+1 == 12):
+                next_point = results.pose_landmarks.landmark[i+1]
+                p = middle_point(x_pose, y_pose, z_pose, next_point)
+                converted_points.append(p)
+                
+            elif (i == 23 and i+1 == 24):
+                next_point = results.pose_landmarks.landmark[i+1]
+                p = middle_point(x_pose, y_pose, z_pose, next_point)
+                converted_points.append(p)
+                
+            elif i == 12 or i == 24:
+                converted_points.append(np.array([x_pose, y_pose, z_pose]))
+            else:
+                converted_points.append(np.array([x_pose, y_pose, z_pose]))
+        else:
+            pass
 
-    # Loop through the landmarks and transform each one to a 3D point
-    for landmark in landmarks.pose_landmarks.landmark:
-        # Transform the landmark to a Blender-compatible point using the conversion matrix
-        point = mathutils.Vector((landmark.x, landmark.y, -landmark.z)) @ conversion_matrix
+    return converted_points
 
-        # Add the point to the list of points
-        points.append(point)
 
-    # Return the list of points
+
+def create_armature():
+    points = mediapipePoints_3DPoints()
+    armature = bpy.data.armatures.new('Armature')
+    object = bpy.data.objects.new('Armature', armature)
+    bpy.context.scene.collection.objects.link(object)
+    bpy.context.view_layer.objects.active = object
+    bpy.ops.object.mode_set(mode='EDIT')
+
+    # Spine to neck bones
+    main_bones = [points[7], points[1], points[-1]]
+    for i in range(len(main_bones)):
+        if i+1 < len(main_bones):
+            bone = armature.edit_bones.new("Bone_{}".format(i))
+            bone.head = main_bones[i]
+        else:
+            break
+
     return points
-    
-converted_points = []
-for point in res.pose_world_landmarks.landmark:
-    converted_points.append((point.x, point.y, point.z))
 
-def createSpinePoints(points):
-   
-    spineTopX1 = points[11][0]
-    spineTopY1 = points[11][1]
-    spineTopZ1 = points[11][2]
-
-    spineTopX2 = points[12][0]
-    spineTopY2 = points[12][1]
-    spineTopZ2 = points[12][2]
-
-    spineBotX1 = points[23][0]
-    spineBotY1 = points[23][1]
-    spineBotZ1 = points[23][2]
-
-    spineBotX2 = points[24][0]
-    spineBotY2 = points[24][1]
-    spineBotZ2 = points[24][2]
-
-    vec1 = np.array([spineTopX1, spineTopY1, spineTopZ1])
-    vec2 = np.array([spineTopX2, spineTopY2, spineTopZ2])
-
-    vec3 = np.array([spineBotX1, spineBotY1, spineBotZ1])
-    vec4 = np.array([spineBotX2, spineBotY2, spineBotZ2])
-
-    spineTop = (vec1 + vec2) / 2
-    spineBot = (vec3 + vec4) / 2
-
-    return spineTop, spineBot
-
-spineTop, spineBot = createSpinePoints(converted_points)
-
-#Creating spine bone
-bpy.ops.object.armature_add(enter_editmode=False, align='WORLD', location=(spineBot[0], spineBot[1], spineBot[2]), scale=(1, 1, 1))
-bpy.ops.object.editmode_toggle()
-bpy.ops.transform.translate(value=(spineTop[0], spineTop[1], spineTop[2]), orient_axis_ortho='X', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', constraint_axis=(False, False, True), mirror=False, snap=False, snap_elements={'INCREMENT'}, use_snap_project=False, snap_target='CLOSEST', use_snap_self=True, use_snap_edit=True, use_snap_nonedit=True, use_snap_selectable=False)
-
-
-#Extruding left arm
-bpy.ops.armature.extrude_move(ARMATURE_OT_extrude={"forked":False}, TRANSFORM_OT_translate={"value":(converted_points[11][0], converted_points[11][1],converted_points[11][2]), "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":True, "use_snap_edit":True, "use_snap_nonedit":True, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
-bpy.ops.armature.extrude_move(ARMATURE_OT_extrude={"forked":False}, TRANSFORM_OT_translate={"value":(converted_points[13][0], converted_points[13][1],converted_points[13][2]), "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":True, "use_snap_edit":True, "use_snap_nonedit":True, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
-bpy.ops.armature.extrude_move(ARMATURE_OT_extrude={"forked":False}, TRANSFORM_OT_translate={"value":(converted_points[15][0], converted_points[15][1],converted_points[15][2]), "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":True, "use_snap_edit":True, "use_snap_nonedit":True, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
+p = create_armature()
