@@ -42,7 +42,7 @@ def middle_point(x_c, y_c, z_c, p_next):
 # CONVERTING MEDIAPIPE LANDMARKS TO 3D POINTS 
 def mediapipePoints_3DPoints():
     scale = 2
-    z_depth = 0
+    z_depth = 0.2
 
     converted_points = []
     needed_points = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 31, 32, 0]
@@ -57,18 +57,22 @@ def mediapipePoints_3DPoints():
                 next_point = results.pose_landmarks.landmark[i+1]
                 p = middle_point(x_pose, y_pose, z_pose, next_point)
                 converted_points.append(p)
-                
+                bpy.ops.mesh.primitive_cube_add(size=0.05, enter_editmode=False, align='WORLD', location=(p[0], p[1], p[2]), scale=(1, 1, 1))
+
             elif (i == 23 and i+1 == 24):
                 next_point = results.pose_landmarks.landmark[i+1]
                 p = middle_point(x_pose, y_pose, z_pose, next_point)
                 converted_points.append(p)
-                
+                bpy.ops.mesh.primitive_cube_add(size=0.05, enter_editmode=False, align='WORLD', location=(p[0], p[1], p[2]), scale=(1, 1, 1))
+
             elif i == 12 or i == 24:
                 converted_points.append(np.array([x_pose, y_pose, z_pose]))
             else:
-                converted_points.append(np.array([x_pose, y_pose, z_pose]))
+                converted_points.append(np.array([x_pose, y_pose, z_pose])) 
         else:
             pass
+        
+        bpy.ops.mesh.primitive_cube_add(size=0.05, enter_editmode=False, align='WORLD', location=(x_pose, y_pose, z_pose), scale=(1, 1, 1))
 
     return converted_points
 
@@ -83,14 +87,21 @@ def create_armature():
     bpy.ops.object.mode_set(mode='EDIT')
 
     # Spine to neck bones
-    main_bones = [points[7], points[1], points[-1]]
-    for i in range(len(main_bones)):
-        if i+1 < len(main_bones):
-            bone = armature.edit_bones.new("Bone_{}".format(i))
-            bone.head = main_bones[i]
-        else:
-            break
+    main_bones = [points[0], points[7], points[1]]
+    prev_bone = None
+    for i, point in enumerate(main_bones):
+        bone_name = 'Bone{}'.format(i+1)
+        bone = armature.edit_bones.new(bone_name)
+        bone.head = point
+        bone.tail = point
+        if prev_bone:
+            bone.parent = prev_bone
+        prev_bone = bone
 
-    return points
+    # update the armature
+    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.mode_set(mode='EDIT')
+    armature.update()
+    bpy.ops.object.mode_set(mode='EDIT')
 
 p = create_armature()
