@@ -9,7 +9,7 @@ import mathutils
 
 def detectPose():
     mp_pose = mp.solutions.pose
-    image = cv2.imread("/Faks/Diploma/test_slika.jpg")
+    image = cv2.imread("/Faks/Diploma/test_slika2.jpg")
     # pose_image = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
     pose = mp_pose.Pose()
     image_in_RGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -17,9 +17,6 @@ def detectPose():
             
     return resultant
 
-
-# Results from mediapipe
-results = detectPose()
 
 # Metoda ki izračuna sredinsko točko med medenico in ključnico (zgornji del hrbtenice in spodnji del hrbtenice). 
 # Args: x,y,z trenutne točke
@@ -41,6 +38,8 @@ def middle_point(x_c, y_c, z_c, p_next):
 
 # CONVERTING MEDIAPIPE LANDMARKS TO 3D POINTS 
 def mediapipePoints_3DPoints():
+    results = detectPose()
+
     scale = 2
     z_depth = 0.2
 
@@ -49,22 +48,19 @@ def mediapipePoints_3DPoints():
 
     for i in range(len(results.pose_landmarks.landmark)):
         if i in needed_points:
-            x_pose = (0.5-results.pose_landmarks.landmark[i].x)*scale
-            y_pose = (0.5-results.pose_landmarks.landmark[i].y)*scale
+            x_pose = (0.5 - results.pose_landmarks.landmark[i].x)*scale
+            y_pose = (0.5 - results.pose_landmarks.landmark[i].y)*scale
             z_pose = results.pose_landmarks.landmark[i].z*z_depth
-            
             if (i == 11 and i+1 == 12):
+                converted_points.append(np.array([x_pose, y_pose, z_pose]))
                 next_point = results.pose_landmarks.landmark[i+1]
                 p = middle_point(x_pose, y_pose, z_pose, next_point)
                 converted_points.append(p)
-                bpy.ops.mesh.primitive_cube_add(size=0.05, enter_editmode=False, align='WORLD', location=(p[0], p[1], p[2]), scale=(1, 1, 1))
-
             elif (i == 23 and i+1 == 24):
+                converted_points.append(np.array([x_pose, y_pose, z_pose]))
                 next_point = results.pose_landmarks.landmark[i+1]
                 p = middle_point(x_pose, y_pose, z_pose, next_point)
                 converted_points.append(p)
-                bpy.ops.mesh.primitive_cube_add(size=0.05, enter_editmode=False, align='WORLD', location=(p[0], p[1], p[2]), scale=(1, 1, 1))
-
             elif i == 12 or i == 24:
                 converted_points.append(np.array([x_pose, y_pose, z_pose]))
             else:
@@ -72,8 +68,6 @@ def mediapipePoints_3DPoints():
         else:
             pass
         
-        bpy.ops.mesh.primitive_cube_add(size=0.05, enter_editmode=False, align='WORLD', location=(x_pose, y_pose, z_pose), scale=(1, 1, 1))
-
     return converted_points
 
 
@@ -87,23 +81,25 @@ def create_armature():
     bpy.ops.object.mode_set(mode='EDIT')
 
     # Spine to neck bones
-    # main_bones = [points[0], points[7], points[1]]
+    new_points = [points[9], points[2], points[0], 
+                    points[2], points[1], points[4], points[6], 
+                    points[2], points[3], points[5], points[7], 
+                    points[9], points[8], points[11], points[13], points[15],
+                    points[9], points[10], points[12], points[14], points[16]]
+     
    
-    bone_name = "Bone_1"
-    bone = armature.edit_bones.new(bone_name)
-    bone.head = points[7]
-    bone.tail = points[1]
-    bone_name = "Bone_2"
-    bone = armature.edit_bones.new(bone_name)
-    bone.head = points[1]
-    bone.tail = points[0]
-    
-    bpy.data.armatures["Aarmature"].edit_bones.get["Bone_1"]
+    for i in range(len(new_points)):
+        if i == 2 or i == 6 or i == 10 or i == 15 or i == 20:
+            pass
+        else:
+        
+            bone_name = f"Bone_{i}"
+            bone = armature.edit_bones.new(bone_name)
+            bone.head = new_points[i]
+            bone.tail = new_points[i+1]
+            #bpy.ops.armature.extrude_move(ARMATURE_OT_extrude={"forked":False}, TRANSFORM_OT_translate={"value": new_points[i], "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":new_points[i], "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
 
-    # update the armature
-    bpy.ops.object.mode_set(mode='OBJECT')
-    bpy.ops.object.mode_set(mode='EDIT')
-    armature.update()
-    bpy.ops.object.mode_set(mode='EDIT')
+
+    return points
 
 p = create_armature()
