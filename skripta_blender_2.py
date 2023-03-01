@@ -87,16 +87,18 @@ def create_armature():
     bpy.ops.object.mode_set(mode='EDIT')
 
     # Spine to neck bones
-    main_bones = [points[0], points[7], points[1]]
-    prev_bone = None
-    for i, point in enumerate(main_bones):
-        bone_name = 'Bone{}'.format(i+1)
-        bone = armature.edit_bones.new(bone_name)
-        bone.head = point
-        bone.tail = point
-        if prev_bone:
-            bone.parent = prev_bone
-        prev_bone = bone
+    # main_bones = [points[0], points[7], points[1]]
+   
+    bone_name = "Bone_1"
+    bone = armature.edit_bones.new(bone_name)
+    bone.head = points[7]
+    bone.tail = points[1]
+    bone_name = "Bone_2"
+    bone = armature.edit_bones.new(bone_name)
+    bone.head = points[1]
+    bone.tail = points[0]
+    
+    bpy.data.armatures["Aarmature"].edit_bones.get["Bone_1"]
 
     # update the armature
     bpy.ops.object.mode_set(mode='OBJECT')
