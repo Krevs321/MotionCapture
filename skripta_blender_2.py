@@ -60,39 +60,48 @@ def mediapipePoints_3DPoints():
             
             if (i == 11 and i+1 == 12): # CALCULATE TOP OF THE SPINE
                 converted_points.append(np.array([x_pose, y_pose, z_pose]))
-                next_point = results.pose_landmarks.landmark[i+1]
-                mid_point = middle_point(x_pose, y_pose, z_pose, next_point)
+                mid_point = middle_point(x_pose, y_pose, z_pose, results.pose_landmarks.landmark[i+1])
                 converted_points.append(mid_point)
+                #bpy.ops.mesh.primitive_cube_add(size=0.02, enter_editmode=False, align='WORLD', location=(mid_point[0], mid_point[1], mid_point[2]), scale=(1, 1, 1))
+
             elif (i == 23 and i+1 == 24):# CALCULATE BOT OF THE SPINE
                 converted_points.append(np.array([x_pose, y_pose, z_pose]))
-                next_point = results.pose_landmarks.landmark[i+1]
-                mid_point = middle_point(x_pose, y_pose, z_pose, next_point)
+                mid_point = middle_point(x_pose, y_pose, z_pose, results.pose_landmarks.landmark[i+1])
                 converted_points.append(mid_point)
+                #bpy.ops.mesh.primitive_cube_add(size=0.02, enter_editmode=False, align='WORLD', location=(mid_point[0], mid_point[1], mid_point[2]), scale=(1, 1, 1))
+
             elif (i == 18 and i+2 == 20): # CALCULATE MIDDLE POINT OF HAND
                 next_point = results.pose_landmarks.landmark[i+2]
                 mid_point = middle_point(x_pose, y_pose, z_pose, next_point)
                 converted_points.append(mid_point)
+                #bpy.ops.mesh.primitive_cube_add(size=0.02, enter_editmode=False, align='WORLD', location=(mid_point[0], mid_point[1], mid_point[2]), scale=(1, 1, 1))
+
             elif (i == 17 and i+2 == 19): # CALCULATE MIDDLE POINT OF HAND
                 next_point = results.pose_landmarks.landmark[i+2]
                 mid_point = middle_point(x_pose, y_pose, z_pose, next_point)
-                converted_points.append(mid_point)           
+                converted_points.append(mid_point)
+                #bpy.ops.mesh.primitive_cube_add(size=0.02, enter_editmode=False, align='WORLD', location=(mid_point[0], mid_point[1], mid_point[2]), scale=(1, 1, 1))
+           
             elif i == 12 or i == 24:
                 converted_points.append(np.array([x_pose, y_pose, z_pose]))
+            
             else:
                 converted_points.append(np.array([x_pose, y_pose, z_pose])) 
             
+            #bpy.ops.mesh.primitive_cube_add(size=0.02, enter_editmode=False, align='WORLD', location=(x_pose, y_pose, z_pose), scale=(1, 1, 1))
+
         else:
             pass
         
     return converted_points
 
 def select_bone(bone):
-    #bone.select_head = True
-    #bone.select_tail = True
+    bone.select_head = True
+    bone.select_tail = True
     bone.select = True
 
 def create_bone(i, armature, new_points):
-    if i == 2 or i == 7 or i == 12 or i == 17 or i == 21 or i == 13:
+    if i == len(new_points)-1 or i == 2:
         pass
     else:
         bone_name = f"Bone_{i}"
@@ -100,7 +109,27 @@ def create_bone(i, armature, new_points):
         bone.head = new_points[i]
         bone.tail = new_points[i+1]
         
-        return bone
+        parent_bones(i, bone, armature)
+        
+    root_bone_name = "Bone_0"
+    root_bone = armature.edit_bones.get(root_bone_name)
+    select_bone(root_bone)
+                    
+
+def parent_bones(i, bone, armature):
+    previous_bone_name = f"Bone_{i-1}"
+    if i > 0:      
+        previous_bone = armature.edit_bones.get(previous_bone_name)
+        select_bone(bone)
+        select_bone(previous_bone)
+        armature.edit_bones.active = previous_bone
+      
+        bpy.ops.armature.parent_set(type='CONNECTED')
+        bpy.ops.armature.select_all(action='DESELECT')        
+
+
+
+
     
 def create_armature():
     points = mediapipePoints_3DPoints()
@@ -111,33 +140,57 @@ def create_armature():
     bpy.ops.object.mode_set(mode='EDIT')
 
     # ALL 3D POINTS NEEDED TO CREATE ARMATURE
-    new_points = [points[13], points[2], points[0],
-                    points[2], points[1], points[4], points[6], points[8],
-                    points[2], points[3], points[5], points[7], points[9],
-                    points[13], points[12], points[15], points[17], points[19],
-                    points[14], points[16], points[18], points[20]]
+#    new_points = [points[13], points[2], points[0],
+#                    points[2], points[1], points[4], points[6], points[8],
+#                    points[2], points[3], points[5], points[7], points[9],
+#                    points[13], points[12], points[15], points[17], points[19],
+#                    points[14], points[16], points[18], points[20]]
+                  
+    main_bones_names = ["Bone1", "Bone2", "Bone3"]             
+    main_bones =  [points[13], points[2], points[0]]
+    left_arm  = [points[2], points[1], points[4], points[6], points[8]] 
+#    right_arm = [points[2], points[3], points[5], points[7], points[9]] 
+#    right_leg = [points[12], points[15], points[17], points[19]] 
+#    left_leg = [points[14], points[16], points[18], points[20]]    
+#    
+#    for i in range(len(main_bones)):
+#        bone = create_bone(i, armature, main_bones)
+    for i in range(len(main_bones)):
+        bone = create_bone(i, armature, main_bones)
+         
+    for i in range(len(left_arm)):
+        bone_name = f"Bone_left_{i}"
+        bone = armature.edit_bones.new(bone_name)
+        bone.head = left_arm[i]
+        bone.tail = left_arm[i+1]
     
-    for i in range(len(new_points)):
-        bone = create_bone(i, armature, new_points)
+        
+    
+#    for i in range(len(right_arm)):
+#        bone = create_bone(i, armature, right_arm)
+#    for i in range(len(left_leg)):
+#        bone = create_bone(i, armature, right_leg)
 
-        root_bone = "Bone_0"
-        previous_bone = ""
-        if i > 0:
-            if (i == 3 and i+1 == 4) or (i == 8 and i+1 == 9):
-                previous_bone = armature.edit_bones.get(root_bone)
-            else:
-                previous_bone_name = f"Bone_{i-1}"
-                previous_bone = armature.edit_bones.get(previous_bone_name)
-            select_bone(bone)
-            select_bone(previous_bone)
-            armature.edit_bones.active = previous_bone
+#    for i in range(len(right_leg)):
+#        bone = create_bone(i, armature, left_leg)
+
+        
+#        root_bone = "Bone_0"
+#        previous_bone = ""
+#        if i > 0:
+#            if (i == 3 and i+1 == 4) or (i == 8 and i+1 == 9):
+#                previous_bone = armature.edit_bones.get(root_bone)
+#            else:
+#                previous_bone_name = f"Bone_{i-1}"
+#                previous_bone = armature.edit_bones.get(previous_bone_name)
+#            select_bone(bone)
+#            select_bone(previous_bone)
+#            armature.edit_bones.active = previous_bone
+#            
+#            bpy.ops.armature.parent_set(type='CONNECTED')
+#            bpy.ops.armature.select_all(action='DESELECT')
             
-            bpy.ops.armature.parent_set(type='CONNECTED')
-            bpy.ops.armature.select_all(action='DESELECT')
-            
-        root = "Bone_0"
-        test_b = armature.edit_bones.get(root)
-        test_b.select_head = True
+ 
 
     return points
 
