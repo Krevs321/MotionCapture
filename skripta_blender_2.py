@@ -9,7 +9,7 @@ import mathutils
 
 def detectPose():
     mp_pose = mp.solutions.pose
-    image = cv2.imread("/Faks/Diploma/test_slika.jpg")
+    image = cv2.imread("/Faks/Diploma/test_slika2.jpg")
     # pose_image = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
     pose = mp_pose.Pose()
     image_in_RGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -86,6 +86,22 @@ def mediapipePoints_3DPoints():
         
     return converted_points
 
+def select_bone(bone):
+    #bone.select_head = True
+    #bone.select_tail = True
+    bone.select = True
+
+def create_bone(i, armature, new_points):
+    if i == 2 or i == 7 or i == 12 or i == 17 or i == 21 or i == 13:
+        pass
+    else:
+        bone_name = f"Bone_{i}"
+        bone = armature.edit_bones.new(bone_name)
+        bone.head = new_points[i]
+        bone.tail = new_points[i+1]
+        
+        return bone
+    
 def create_armature():
     points = mediapipePoints_3DPoints()
     armature = bpy.data.armatures.new('Armature')
@@ -99,17 +115,29 @@ def create_armature():
                     points[2], points[1], points[4], points[6], points[8],
                     points[2], points[3], points[5], points[7], points[9],
                     points[13], points[12], points[15], points[17], points[19],
-                    points[13], points[14], points[16], points[18], points[20]]
+                    points[14], points[16], points[18], points[20]]
     
     for i in range(len(new_points)):
-        if i == 2 or i == 7 or i == 12 or i == 17 or i == 22:
-            pass
-        else:
-        
-            bone_name = f"Bone_{i}"
-            bone = armature.edit_bones.new(bone_name)
-            bone.head = new_points[i]
-            bone.tail = new_points[i+1]
+        bone = create_bone(i, armature, new_points)
+
+        root_bone = "Bone_0"
+        previous_bone = ""
+        if i > 0:
+            if (i == 3 and i+1 == 4) or (i == 8 and i+1 == 9):
+                previous_bone = armature.edit_bones.get(root_bone)
+            else:
+                previous_bone_name = f"Bone_{i-1}"
+                previous_bone = armature.edit_bones.get(previous_bone_name)
+            select_bone(bone)
+            select_bone(previous_bone)
+            armature.edit_bones.active = previous_bone
+            
+            bpy.ops.armature.parent_set(type='CONNECTED')
+            bpy.ops.armature.select_all(action='DESELECT')
+            
+        root = "Bone_0"
+        test_b = armature.edit_bones.get(root)
+        test_b.select_head = True
 
     return points
 
