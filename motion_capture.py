@@ -160,7 +160,6 @@ def create_armature():
             else:
                 pass     
     
-    
     for i in range(len(limbs_start)):
         limb_bone_name = f"Bone_limb_{i}"
         bone = armature.edit_bones.new(limb_bone_name)
