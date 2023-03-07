@@ -88,24 +88,41 @@ def create_bone(i, armature, list_of_points):
         bone_name = f"Bone_{i}"
         bone = armature.edit_bones.new(bone_name)
         bone.head = list_of_points[i]
-        bone.tail = list_of_points[i+1]        
+        bone.tail = list_of_points[i+1]
+
+        return bone
     else:
-        pass
-    return bone
+        print("There is no Bone")
 
 def select_bone(bone):
     bone.select_head = True
     bone.select_tail = True
     bone.select = True
 
-def parent_main_bones(i, armature, bone):
-           
-    previous_bone_name = f"Bone_{i-1}"
-    previous_bone = armature.edit_bones.get(previous_bone_name)
+def parent_bones(i, armature, bone, ind):
+    root_bone = "Bone_0"       
+    previous_bone_name = f"Bone_{i-1}" 
+    if i == 0:
+        previous_bone = armature.edit_bones.get(root_bone)    
+    else:
+        previous_bone = armature.edit_bones.get(previous_bone_name)
     select_bone(bone)
     select_bone(previous_bone)
     armature.edit_bones.active = previous_bone
     
+    if (ind == 2 or ind == 3):    
+        bpy.ops.armature.parent_set(type='OFFSET')
+        bpy.ops.armature.select_all(action='DESELECT') 
+    else:  
+        bpy.ops.armature.parent_set(type='CONNECTED')
+        bpy.ops.armature.select_all(action='DESELECT')
+
+def parent_limbs(i, armature, bone):       
+    previous_bone_name = f"Bone_limb_{i}" 
+    previous_bone = armature.edit_bones.get(previous_bone_name)
+    select_bone(bone)
+    select_bone(previous_bone)
+    armature.edit_bones.active = previous_bone
     bpy.ops.armature.parent_set(type='CONNECTED')
     bpy.ops.armature.select_all(action='DESELECT')
 
@@ -118,19 +135,68 @@ def create_armature():
     bpy.context.view_layer.objects.active = object
     bpy.ops.object.mode_set(mode='EDIT')
 
-
     main_bones = [points[38], points[35], points[34], points[33]]
-    left_arm = [points[35], points[11], points[13], points[15], points[37]]
-    right_arm = [points[35], points[12], points[14], points[16], points[36]]
-    left_leg = [points[24], points[26], points[28], points[32]]
-    right_leg = [points[23], points[25], points[27], points[31]]
+    
+    left_arm_st = [points[35], points[11]]
+    left_arm = [points[11], points[13], points[15], points[37]]
+    
+    right_arm_st = [points[35], points[12]]
+    right_arm = [points[12], points[14], points[16], points[36]]
+    
+    left_leg_st = [points[24], points[26]]
+    left_leg = [points[26], points[28], points[32]]
+    
+    right_leg_st = [points[23], points[25]]
+    right_leg = [points[25], points[27], points[31]]
+    
+    limbs_start = [left_arm_st, right_arm_st, left_leg_st, right_leg_st]
+    limbs_other = [left_arm, right_arm, left_leg, right_leg]   
     
     for i in range(len(main_bones)):
         main_bone = create_bone(i, armature, main_bones)
         if i > 0: 
-            parent_main_bones(i, armature, main_bone)
+            if i != len(main_bones) - 1:
+                parent_bones(i, armature, main_bone, 5)
+            else:
+                pass     
     
-    # left_arm_bone = create_bone(armature, left_arm)
+    
+    for i in range(len(limbs_start)):
+        limb_bone_name = f"Bone_limb_{i}"
+        bone = armature.edit_bones.new(limb_bone_name)
+        bone.head = limbs_start[i][0]
+        bone.tail = limbs_start[i][1]
+        if i == 2 or i == 3:
+            parent_bones(0, armature, bone, i)
+        else:
+            parent_bones(0, armature, bone, 5)
+    
+    for i in range(len(limbs_other)):
+        for j in range(len(limbs_other[i])):     
+            limb = create_bone(j, armature, limbs_other[i])
+            
+            
+    
+    
+#    right_arm_bone_name = "Bone_right_arm_0"
+#    bone = armature.edit_bones.new(right_arm_bone_name)
+#    bone.head = right_arm_st[0]
+#    bone.tail = right_arm_st[1]
+#    parent_bones(0, armature, bone, 5)
+#    
+#    
+#    left_leg_bone_name = "Bone_left_leg_0"
+#    bone = armature.edit_bones.new(left_leg_bone_name)
+#    bone.head = left_leg_st[0]
+#    bone.tail = left_leg_st[1]
+#    parent_bones(0, armature, bone, 2)
+#    
+#    right_leg_bone_name = "Bone_right_leg_0"
+#    bone = armature.edit_bones.new(right_arm_bone_name)
+#    bone.head = right_leg_st[0]
+#    bone.tail = right_leg_st[1]
+#    parent_bones(0, armature, bone, 3)
+               
     # create_bone(armature, right_arm)
     # create_bone(armature, left_leg)
     # create_bone(armature, right_leg)
