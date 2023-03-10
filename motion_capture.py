@@ -5,9 +5,9 @@ import bpy
 import mathutils
 
 
-def detectPose():
+def detectPose(image):
     mp_pose = mp.solutions.pose
-    image = cv2.imread("/Faks/Diploma/test_slika2.jpg")
+    #image = cv2.imread("/Faks/Diploma/test_slika2.jpg")
     # pose_image = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
     pose = mp_pose.Pose()
     image_in_RGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -36,9 +36,7 @@ def middle_point(x_c, y_c, z_c, p_next):
 
 
 # CONVERTING MEDIAPIPE LANDMARKS TO 3D POINTS 
-def mediapipePoints_3DPoints():
-    results = detectPose()
-
+def mediapipePoints_3DPoints(results):
     needed_points = [1, 4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 23, 24, 25, 26, 27, 28, 31, 32]
     all_points = {}
     
@@ -117,17 +115,7 @@ def parent_bones(i, armature, bone, ind):
         bpy.ops.armature.parent_set(type='CONNECTED')
         bpy.ops.armature.select_all(action='DESELECT')
 
-def parent_limbs(i, armature, bone):       
-    previous_bone_name = f"Bone_limb_{i}" 
-    previous_bone = armature.edit_bones.get(previous_bone_name)
-    select_bone(bone)
-    select_bone(previous_bone)
-    armature.edit_bones.active = previous_bone
-    bpy.ops.armature.parent_set(type='CONNECTED')
-    bpy.ops.armature.select_all(action='DESELECT')
-
-def create_armature():
-    points = mediapipePoints_3DPoints()
+def create_armature(points):
 
     armature = bpy.data.armatures.new('Armature')
     object = bpy.data.objects.new('Armature', armature)
@@ -137,19 +125,11 @@ def create_armature():
 
     main_bones = [points[38], points[35], points[34], points[33]]
     
-    left_arm_st = [points[35], points[11]]
-    left_arm = [points[11], points[13], points[15], points[37]]
-    
-    right_arm_st = [points[35], points[12]]
-    right_arm = [points[12], points[14], points[16], points[36]]
-    
-    left_leg_st = [points[24], points[26]]
-    left_leg = [points[26], points[28], points[32]]
-    
-    right_leg_st = [points[23], points[25]]
-    right_leg = [points[25], points[27], points[31]]
-    
-    limbs_start = [left_arm_st, right_arm_st, left_leg_st, right_leg_st]
+    left_arm = [points[11], points[13], points[15], points[37]]    
+    right_arm = [points[12], points[14], points[16], points[36]]    
+    left_leg = [points[24], points[26], points[28], points[32]]   
+    right_leg = [points[23], points[25], points[27], points[31]]
+ 
     limbs_other = [left_arm, right_arm, left_leg, right_leg]   
     
     for i in range(len(main_bones)):
@@ -160,65 +140,33 @@ def create_armature():
             else:
                 pass     
     
-    for i in range(len(limbs_start)):
-        limb_bone_name = f"Bone_limb_{i}"
-        bone = armature.edit_bones.new(limb_bone_name)
-        bone.head = limbs_start[i][0]
-        bone.tail = limbs_start[i][1]
-        if i == 2 or i == 3:
-            parent_bones(0, armature, bone, i)
-        else:
-            parent_bones(0, armature, bone, 5)
-    
     for i in range(len(limbs_other)):
+        previous = limbs_other[i][0]
         for j in range(len(limbs_other[i])):     
             limb = create_bone(j, armature, limbs_other[i])
-            
-            
-    
-    
-#    right_arm_bone_name = "Bone_right_arm_0"
-#    bone = armature.edit_bones.new(right_arm_bone_name)
-#    bone.head = right_arm_st[0]
-#    bone.tail = right_arm_st[1]
-#    parent_bones(0, armature, bone, 5)
-#    
-#    
-#    left_leg_bone_name = "Bone_left_leg_0"
-#    bone = armature.edit_bones.new(left_leg_bone_name)
-#    bone.head = left_leg_st[0]
-#    bone.tail = left_leg_st[1]
-#    parent_bones(0, armature, bone, 2)
-#    
-#    right_leg_bone_name = "Bone_right_leg_0"
-#    bone = armature.edit_bones.new(right_arm_bone_name)
-#    bone.head = right_leg_st[0]
-#    bone.tail = right_leg_st[1]
-#    parent_bones(0, armature, bone, 3)
-               
-    # create_bone(armature, right_arm)
-    # create_bone(armature, left_leg)
-    # create_bone(armature, right_leg)
-        
-
-        
-#        root_bone = "Bone_0"
-#        previous_bone = ""
-#        if i > 0:
-#            if (i == 3 and i+1 == 4) or (i == 8 and i+1 == 9):
-#                previous_bone = armature.edit_bones.get(root_bone)
-#            else:
-#                previous_bone_name = f"Bone_{i-1}"
-#                previous_bone = armature.edit_bones.get(previous_bone_name)
-#            select_bone(bone)
-#            select_bone(previous_bone)
-#            armature.edit_bones.active = previous_bone
-#            
-#            bpy.ops.armature.parent_set(type='CONNECTED')
-#            bpy.ops.armature.select_all(action='DESELECT')
-            
- 
+            if j == 0 :
+                parent_bones(j, armature, limb, 2)
+                previous = limb
+            else:
+                if j < len(limbs_other[i]) - 1:
+                    select_bone(limb)
+                    select_bone(previous)
+                    armature.edit_bones.active = previous
+                    bpy.ops.armature.parent_set(type='CONNECTED')
+                    bpy.ops.armature.select_all(action='DESELECT') 
+                    previous = limb
+                else:
+                    print("Done!") 
 
     return points
 
-create_armature()
+def read_video(image_path):
+    image = cv2.imread(image_path)    
+    results = detectPose(image)
+    points = mediapipePoints_3DPoints(results)
+    create_armature(points)
+        
+
+
+image_path = "/Faks/Diploma/test_slika3.jpg"
+read_video(image_path)
