@@ -81,7 +81,7 @@ def mediapipePoints_3DPoints(results):
     
     return all_points
 
-def create_bone(i, armature, list_of_points):
+def create_bone(i, armature, list_of_points, bone_names):
     if i != len(list_of_points) - 1:
         bone_name = f"Bone_{i}"
         bone = armature.edit_bones.new(bone_name)
@@ -115,6 +115,9 @@ def parent_bones(i, armature, bone, ind):
         bpy.ops.armature.parent_set(type='CONNECTED')
         bpy.ops.armature.select_all(action='DESELECT')
 
+
+
+
 def create_armature(points):
 
     armature = bpy.data.armatures.new('Armature')
@@ -124,16 +127,18 @@ def create_armature(points):
     bpy.ops.object.mode_set(mode='EDIT')
 
     main_bones = [points[38], points[35], points[34], points[33]]
+    main_bones_names = ["spine", "neck", "head"]
     
     left_arm = [points[11], points[13], points[15], points[37]]    
     right_arm = [points[12], points[14], points[16], points[36]]    
     left_leg = [points[24], points[26], points[28], points[32]]   
     right_leg = [points[23], points[25], points[27], points[31]]
  
-    limbs_other = [left_arm, right_arm, left_leg, right_leg]   
+    limbs_other = [left_arm, right_arm, left_leg, right_leg] 
+    limbs_other_names = ["left_arm", "right_arm", "left_leg", "right_leg"]     
     
     for i in range(len(main_bones)):
-        main_bone = create_bone(i, armature, main_bones)
+        main_bone = create_bone(i, armature, main_bones, None)
         if i > 0: 
             if i != len(main_bones) - 1:
                 parent_bones(i, armature, main_bone, 5)
@@ -143,7 +148,7 @@ def create_armature(points):
     for i in range(len(limbs_other)):
         previous = limbs_other[i][0]
         for j in range(len(limbs_other[i])):     
-            limb = create_bone(j, armature, limbs_other[i])
+            limb = create_bone(j, armature, limbs_other[i], limbs_other_names)
             if j == 0 :
                 parent_bones(j, armature, limb, 2)
                 previous = limb
@@ -157,16 +162,54 @@ def create_armature(points):
                     previous = limb
                 else:
                     print("Done!") 
-
+    
+    
+    
+    object.pose.bones.get("Bone_0.001")
+    
+    #bpy.ops.object.mode_set(mode='OBJECT')
     return points
 
 def read_video(image_path):
-    image = cv2.imread(image_path)    
-    results = detectPose(image)
+    cam = cv2.VideoCapture(image_path)
+      
+#    results = detectPose(image)
+#    points = mediapipePoints_3DPoints(results)
+#    create_armature(points)
+#    
+    # frame
+    currentframe = 0
+    while(True):
+        ret,frame = cam.read()
+          
+        if ret:
+            print(f"Creating frame: {currentframe}")
+        
+            results = detectPose(frame)
+            points = mediapipePoints_3DPoints(results)
+            create_armature(points)
+            currentframe += 1
+        else:
+            break
+      
+    # Release all space and windows once done
+    cam.release()
+    cv2.destroyAllWindows()
+        
+def read_image(image_path):
+    print(f"Creating frame: 0")
+    
+    frame = cv2.imread(image_path)
+    results = detectPose(frame)
     points = mediapipePoints_3DPoints(results)
     create_armature(points)
-        
+       
 
+video_path = "/Faks/Diploma/test_video.mp4"
+#read_video(video_path)
 
 image_path = "/Faks/Diploma/test_slika3.jpg"
-read_video(image_path)
+read_image(image_path)
+
+image_path = "/Faks/Diploma/test_slika2.jpg"
+read_image(image_path)
