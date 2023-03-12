@@ -165,7 +165,7 @@ def create_armature(points):
     
     
     
-    #bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.mode_set(mode='OBJECT')
     return points
 
 def constraintBoneTargets(armature, rig):
@@ -222,10 +222,10 @@ video_path = "/Faks/Diploma/test_video.mp4"
 #read_video(video_path)
 
 image_path = "/Faks/Diploma/test_slika3.jpg"
-#read_image(image_path)
+read_image(image_path)
 
 image_path = "/Faks/Diploma/test_slika2.jpg"
-#read_image(image_path)
+read_image(image_path)
 
 armature = bpy.data.objects.get("Armature")
 #constraintBoneTargets(armature, rig)
