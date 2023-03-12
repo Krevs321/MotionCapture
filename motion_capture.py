@@ -116,8 +116,6 @@ def parent_bones(i, armature, bone, ind):
         bpy.ops.armature.select_all(action='DESELECT')
 
 
-
-
 def create_armature(points):
 
     armature = bpy.data.armatures.new('Armature')
@@ -212,4 +210,4 @@ image_path = "/Faks/Diploma/test_slika3.jpg"
 read_image(image_path)
 
 image_path = "/Faks/Diploma/test_slika2.jpg"
-read_image(image_path)
+#read_image(image_path)
