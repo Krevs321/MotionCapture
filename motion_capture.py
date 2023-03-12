@@ -163,10 +163,25 @@ def create_armature(points):
     
     
     
-    object.pose.bones.get("Bone_0.001")
+    
     
     #bpy.ops.object.mode_set(mode='OBJECT')
     return points
+
+def constraintBoneTargets(armature, rig):
+    rigobj = bpy.data.objects[armature]
+    for ob in bpy.context.scene.objects: ob.select_set(False)
+    bpy.context.view_layer.objects.active = rigobj
+    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.pose.select_all(action='SELECT')
+    for bone in bpy.context.selected_pose_bones:
+        for c in bone.constraints:
+            bone.constraints.remove( c )
+        if bpy.context.scene.objects[rig].data.bones.get("ORG-"+bone.name) is not None:
+                constraint = bone.constraints.new('COPY_TRANSFORMS')
+                constraint.target = bpy.context.scene.objects[rig]
+                constraint.subtarget = "ORG-"+bone.name
+                
 
 def read_video(image_path):
     cam = cv2.VideoCapture(image_path)
@@ -207,7 +222,10 @@ video_path = "/Faks/Diploma/test_video.mp4"
 #read_video(video_path)
 
 image_path = "/Faks/Diploma/test_slika3.jpg"
-read_image(image_path)
+#read_image(image_path)
 
 image_path = "/Faks/Diploma/test_slika2.jpg"
 #read_image(image_path)
+
+armature = bpy.data.objects.get("Armature")
+#constraintBoneTargets(armature, rig)
