@@ -125,7 +125,6 @@ def create_armature(points):
     bpy.ops.object.mode_set(mode='EDIT')
 
     main_bones = [points[38], points[35], points[34], points[33]]
-    main_bones_names = ["spine", "neck", "head"]
     
     left_arm = [points[11], points[13], points[15], points[37]]    
     right_arm = [points[12], points[14], points[16], points[36]]    
@@ -161,26 +160,11 @@ def create_armature(points):
                 else:
                     print("Done!") 
     
-    
-    
-    
-    
-    bpy.ops.object.mode_set(mode='OBJECT')
-    return points
-
-def constraintBoneTargets(armature, rig):
-    rigobj = bpy.data.objects[armature]
-    for ob in bpy.context.scene.objects: ob.select_set(False)
-    bpy.context.view_layer.objects.active = rigobj
     bpy.ops.object.mode_set(mode='POSE')
-    bpy.ops.pose.select_all(action='SELECT')
-    for bone in bpy.context.selected_pose_bones:
-        for c in bone.constraints:
-            bone.constraints.remove( c )
-        if bpy.context.scene.objects[rig].data.bones.get("ORG-"+bone.name) is not None:
-                constraint = bone.constraints.new('COPY_TRANSFORMS')
-                constraint.target = bpy.context.scene.objects[rig]
-                constraint.subtarget = "ORG-"+bone.name
+    
+    object.pose.bones.get("Bone_0")
+    #bpy.ops.object.mode_set(mode='OBJECT')
+    return points
                 
 
 def read_video(image_path):
@@ -225,7 +209,7 @@ image_path = "/Faks/Diploma/test_slika3.jpg"
 read_image(image_path)
 
 image_path = "/Faks/Diploma/test_slika2.jpg"
-read_image(image_path)
+#read_image(image_path)
 
 armature = bpy.data.objects.get("Armature")
 #constraintBoneTargets(armature, rig)
