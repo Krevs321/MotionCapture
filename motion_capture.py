@@ -162,7 +162,7 @@ def create_armature(points):
     
     bpy.ops.object.mode_set(mode='POSE')
     
-    object.pose.bones.get("Bone_0")
+    armature.edit_bones.active =  object.pose.bones.get("Bone_0")
     #bpy.ops.object.mode_set(mode='OBJECT')
     return points
                 
