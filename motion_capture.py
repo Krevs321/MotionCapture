@@ -160,21 +160,13 @@ def create_armature(points):
                 else:
                     print("Done!") 
     
-    bpy.ops.object.mode_set(mode='POSE')
-    
-    armature.edit_bones.active =  object.pose.bones.get("Bone_0")
-    #bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.mode_set(mode='OBJECT')
     return points
                 
 
 def read_video(image_path):
     cam = cv2.VideoCapture(image_path)
       
-#    results = detectPose(image)
-#    points = mediapipePoints_3DPoints(results)
-#    create_armature(points)
-#    
-    # frame
     currentframe = 0
     while(True):
         ret,frame = cam.read()
@@ -188,10 +180,10 @@ def read_video(image_path):
             currentframe += 1
         else:
             break
-      
-    # Release all space and windows once done
+    print(currentframe)
     cam.release()
     cv2.destroyAllWindows()
+    return currentframe
         
 def read_image(image_path):
     print(f"Creating frame: 0")
@@ -203,13 +195,40 @@ def read_image(image_path):
        
 
 video_path = "/Faks/Diploma/test_video.mp4"
-#read_video(video_path)
+frames = read_video(video_path)
 
 image_path = "/Faks/Diploma/test_slika3.jpg"
-read_image(image_path)
+#read_image(image_path)
 
 image_path = "/Faks/Diploma/test_slika2.jpg"
 #read_image(image_path)
 
-armature = bpy.data.objects.get("Armature")
-#constraintBoneTargets(armature, rig)
+source_armature = bpy.data.objects['Armature']
+frames = 71
+
+bpy.context.view_layer.objects.active = source_armature
+source_armature.select_set(True)
+bpy.ops.object.mode_set(mode='POSE')
+bpy.ops.pose.select_all(action='SELECT')
+bpy.ops.anim.keyframe_insert_by_name(type="BUILTIN_KSI_LocScale")
+
+for i in range(1, frames):
+    bpy.context.scene.frame_end = frames
+
+    target_armature_name = f"Armature.{i :03}"
+    target_armature = bpy.data.objects[target_armature_name]
+
+    bpy.context.view_layer.objects.active = target_armature
+
+    bpy.data.scenes['Scene'].frame_set(bpy.data.scenes['Scene'].frame_current + 1)
+    #bpy.data.scenes['Scene'].frame_set(bpy.data.scenes['Scene'].frame_end)
+
+    for bone in target_armature.pose.bones:
+        source_armature.pose.bones[bone.name].matrix = bone.matrix
+        source_armature.pose.bones[bone.name].scale = bone.scale
+
+    bpy.ops.pose.select_all(action='SELECT')
+    bpy.ops.anim.keyframe_insert_by_name(type="BUILTIN_KSI_LocScale")
+
+
+bpy.ops.object.posemode_toggle()
