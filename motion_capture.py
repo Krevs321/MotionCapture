@@ -213,7 +213,7 @@ bpy.context.view_layer.objects.active = source_armature
 source_armature.select_set(True)
 bpy.ops.object.mode_set(mode='POSE')
 bpy.ops.pose.select_all(action='SELECT')
-bpy.ops.anim.keyframe_insert_by_name(type="BUILTIN_KSI_VisualLocScale")
+#bpy.ops.anim.keyframe_insert_by_name(type="BUILTIN_KSI_VisualLocScale")
 
 #for i in range(1, frames):
 #    bpy.context.scene.frame_end = frames
@@ -232,12 +232,15 @@ bpy.ops.anim.keyframe_insert_by_name(type="BUILTIN_KSI_VisualLocScale")
 
 
 #bpy.data.scenes['Scene'].frame_set(bpy.data.scenes['Scene'].frame_current + 1)
-bpy.data.scenes['Scene'].frame_set(bpy.data.scenes['Scene'].frame_end)
+#bpy.data.scenes['Scene'].frame_set(bpy.data.scenes['Scene'].frame_end)
 
 for bone in target_armature.pose.bones:
-    source_armature.pose.bones[bone.name].matrix = bone.matrix
+    #source_armature.pose.bones[bone.name].matrix = bone.matrix
+    #source_armature.pose.bones[bone.name].scale = bone.scale
     source_armature.pose.bones[bone.name].scale = bone.scale
+    source_armature.pose.bones[bone.name].matrix = bone.matrix
+    source_armature.pose.bones[bone.name].location = bone.location
     
-bpy.ops.anim.keyframe_insert_by_name(type="BUILTIN_KSI_VisualLocScale")
+#bpy.ops.anim.keyframe_insert_by_name(type="BUILTIN_KSI_VisualLocScale")
 
 bpy.ops.object.posemode_toggle()
